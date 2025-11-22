@@ -1,0 +1,1 @@
+export const API_URL = 'https://admin.khgc-system.khgc.dev/api/v1';
