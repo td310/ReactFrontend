@@ -1,6 +1,6 @@
 import { useDispatch } from 'react-redux';
-import { setCredentials, logout as logoutAction } from '@/store/authSlice';
-import { useLoginMutation, useLogoutMutation } from '@/api/authApi';
+import { setCredentials, logout as logoutAction } from '@/store/AuthStore/authSlice';
+import { useLoginMutation, useLogoutMutation } from '@/api/Auth/authApi';
 import { useNavigate } from 'react-router-dom';
 
 export const useAuth = () => {
