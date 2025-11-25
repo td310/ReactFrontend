@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useGetProfileQuery,
@@ -50,6 +50,10 @@ const ProfileOverview: React.FC = () => {
   const [updateBackground, { isLoading: backgroundUpdating }] = useUpdateBackgroundMutation();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const bgInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -284,13 +288,6 @@ const ProfileOverview: React.FC = () => {
                   >
                     Trang chủ
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => refetch()}
-                    className="px-5 py-2 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition"
-                  >
-                    Làm mới dữ liệu
-                  </button>
                 </div>
               </div>
             </div>

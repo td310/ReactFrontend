@@ -12,7 +12,7 @@ export const useAuth = () => {
   const handleLogin = async (email: string, password: string) => {
     try {
       const response = await login({ email, password }).unwrap();
-      dispatch(setCredentials({ token: response.token, user: response.user }));
+      dispatch(setCredentials({ token: response.token, user: response.user }));  
       navigate('/home');
     } catch (error: any) {
       const errorMessage = error?.data?.message || error?.message;
@@ -23,10 +23,11 @@ export const useAuth = () => {
   const handleLogout = async () => {
     try {
       await logoutApi().unwrap();
-      dispatch(logoutAction());
-      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      dispatch(logoutAction());
+      navigate('/login');
     }
   };
 
