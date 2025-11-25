@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/store/store';
-import type { LoginResponse, LoginRequest } from '@/types';
+import type { LoginRequest, LoginResponse } from '@/types/Auth';
 import { API_URL } from '@/utils/constants';
 
 export const authApi = createApi({
@@ -35,3 +35,4 @@ export const authApi = createApi({
 });
 
 export const { useLoginMutation, useLogoutMutation } = authApi;
+
