@@ -10,7 +10,7 @@ export const loginSchema = z.object({
     .regex(/[a-z]/, { message: 'Mật khẩu phải chứa ít nhất một chữ cái thường.' })
     .regex(/[A-Z]/, { message: 'Mật khẩu phải chứa ít nhất một chữ cái hoa.' })
     .regex(/[0-9]/, { message: 'Mật khẩu phải chứa ít nhất một số.' })
-    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, { message: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt.' }),
+    .regex(/[^A-Za-z0-9]/, { message: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt.' }),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { ZodError } from 'zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/services/AuthService/authService';
 import { loginSchema, type LoginFormData } from '@/validation/auth/login.schema';
 
@@ -32,119 +33,51 @@ const ErrorIcon = () => (
   </svg>
 );
 
-interface FormErrors {
-  email?: string;
-  password?: string;
-}
-
-interface TouchedFields {
-  email: boolean;
-  password: boolean;
-}
-
-const formatZodErrors = (error: ZodError<LoginFormData>): FormErrors => {
-  const formattedErrors: FormErrors = {};
-  
-  error.issues.forEach((issue) => {
-    const path = issue.path[0] as keyof FormErrors;
-    if (path) {
-      formattedErrors[path] = issue.message;
-    }
-  });
-  
-  return formattedErrors;
-};
-
-const validateField = (field: keyof LoginFormData, value: string): string | undefined => {
-  try {
-    loginSchema.shape[field].parse(value);
-    return undefined;
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return error.issues[0]?.message;
-    }
-    return undefined;
-  }
-};
-
 const LoginForm: React.FC = () => {
   const { handleLogin } = useAuth();
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
-  });
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const [touched, setTouched] = useState<TouchedFields>({
-    email: false,
-    password: false,
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+    watch,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
   });
 
-  const handleChange = (field: keyof LoginFormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value;
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (touched[field] && errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
+  useEffect(() => {
     if (generalError) {
       setGeneralError(null);
     }
-  };
+  }, [generalError, watch('email'), watch('password')]);
 
-  const handleBlur = (field: keyof LoginFormData) => () => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const error = validateField(field, formData[field]);
-    setErrors((prev) => ({ ...prev, [field]: error }));
-  };
-
-  const validateForm = (): boolean => {
-    try {
-      loginSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof ZodError) {
-        setErrors(formatZodErrors(error as ZodError<LoginFormData>));
-      }
-      setTouched({ email: true, password: true });
-      return false;
-    }
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: LoginFormData) => {
     setGeneralError(null);
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
     try {
-      await handleLogin(formData.email, formData.password);
+      await handleLogin(values.email, values.password);
     } catch (err: any) {
       if (err?.data?.errors) {
         const serverErrors = err.data.errors;
-        setErrors({
-          email: serverErrors.email?.[0] || errors.email,
-          password: serverErrors.password?.[0] || errors.password,
-        });
+        if (serverErrors.email?.[0]) {
+          setError('email', { type: 'server', message: serverErrors.email[0] });
+        }
+        if (serverErrors.password?.[0]) {
+          setError('password', { type: 'server', message: serverErrors.password[0] });
+        }
       } else {
         const errorMessage = err?.message || err?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
         setGeneralError(errorMessage);
         console.error('Login error:', err);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6 w-full max-w-sm mx-auto">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full max-w-sm mx-auto">
       {generalError && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="text-sm text-red-600 danger flex items-center gap-2">
@@ -164,9 +97,11 @@ const LoginForm: React.FC = () => {
           </div>
           <input
             type="email"
-            value={formData.email}
-            onChange={handleChange('email')}
-            onBlur={handleBlur('email')}
+            {...register('email', {
+              onChange: () => {
+                if (generalError) setGeneralError(null);
+              },
+            })}
             className={`w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-4 transition-all duration-200 outline-none text-gray-800 placeholder-gray-400 ${
               errors.email
                 ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
@@ -174,10 +109,10 @@ const LoginForm: React.FC = () => {
             }`}
           />
         </div>
-        {errors.email && (
+        {errors.email?.message && (
           <p className="text-sm text-red-600 ml-1 mt-1 flex items-center gap-1">
             <ErrorIcon />
-            {errors.email}
+            {errors.email.message}
           </p>
         )}
       </div>
@@ -194,9 +129,11 @@ const LoginForm: React.FC = () => {
           </div>
           <input
             type={showPassword ? "text" : "password"}
-            value={formData.password}
-            onChange={handleChange('password')}
-            onBlur={handleBlur('password')}
+            {...register('password', {
+              onChange: () => {
+                if (generalError) setGeneralError(null);
+              },
+            })}
             className={`w-full pl-10 pr-10 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-4 transition-all duration-200 outline-none text-gray-800 placeholder-gray-400 ${
               errors.password
                 ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
@@ -210,20 +147,20 @@ const LoginForm: React.FC = () => {
             <EyeIcon visible={showPassword} />
           </div>
         </div>
-        {errors.password && (
+        {errors.password?.message && (
           <p className="text-sm text-red-600 ml-1 mt-1 flex items-center gap-1">
             <ErrorIcon />
-            {errors.password}
+            {errors.password.message}
           </p>
         )}
       </div>
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={isSubmitting}
         className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-orange-500/30 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
       >
-        {loading ? (
+        {isSubmitting ? (
           <div className="flex items-center justify-center gap-2">
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
