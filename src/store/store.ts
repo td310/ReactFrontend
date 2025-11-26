@@ -8,17 +8,37 @@ import {
   PERSIST,
   PURGE,
   REGISTER,
+  type Storage,
 } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
 import authReducer from './AuthStore/authSlice';
 import { authApi } from '@/api/Auth/authApi';
 import { userApi } from '@/api/User/userApi';
 
+const createSessionStorageAdapter = (): Storage => {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    return {
+      getItem: async () => null,
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+  }
+
+  return {
+    getItem: async (key: string) => window.sessionStorage.getItem(key),
+    setItem: async (key: string, value: string) => {
+      window.sessionStorage.setItem(key, value);
+    },
+    removeItem: async (key: string) => {
+      window.sessionStorage.removeItem(key);
+    },
+  };
+};
+
+const sessionStorageAdapter = createSessionStorageAdapter();
 
 const persistConfig = {
-  key: 'root',
-  storage,
-  whitelist: ['auth'],
+  key: 'auth',
+  storage: sessionStorageAdapter,
 };
 
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
