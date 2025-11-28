@@ -3,6 +3,8 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import UserProfile from './pages/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute';
+import CreatePost from './pages/post/CreatePost';
+import PostDetail from './pages/post/PostDetail';
 
 const App: React.FC = () => {
   return (
@@ -22,6 +24,23 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <UserProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/posts/create"
+          element={
+            <ProtectedRoute>
+              <CreatePost />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/posts/:postId"
+          element={
+            <ProtectedRoute>
+              <PostDetail />
             </ProtectedRoute>
           }
         />
