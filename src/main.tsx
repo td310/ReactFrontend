@@ -15,7 +15,19 @@ export const LoadingScreen = () => (
   </div>
 );
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const container = document.getElementById('root');
+if (!container) {
+  throw new Error('Không tìm thấy phần tử #root để khởi tạo ứng dụng.');
+}
+
+type GlobalWithRoot = typeof window & {
+  __APP_ROOT__?: ReturnType<typeof ReactDOM.createRoot>;
+};
+
+const globalWithRoot = window as GlobalWithRoot;
+const root = globalWithRoot.__APP_ROOT__ ?? ReactDOM.createRoot(container);
+
+root.render(
   <React.StrictMode>
     <Provider store={store}>
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
@@ -24,3 +36,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </Provider>
   </React.StrictMode>
 );
+
+globalWithRoot.__APP_ROOT__ = root;

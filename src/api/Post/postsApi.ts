@@ -50,6 +50,7 @@ export const postsApi = createApi({
         }
         return response as Post;
       },
+      providesTags: (result, error, postId) => [{ type: 'Posts', id: postId }],
     }),
   }),
 });
