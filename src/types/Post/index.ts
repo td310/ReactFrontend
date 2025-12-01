@@ -1,8 +1,17 @@
+export interface CommentUser {
+  id: number;
+  name: string;
+  email: string;
+  avatar_url?: string | null;
+}
+
 export interface PostComment {
   id: number;
   content: string;
+  user?: CommentUser;
   user_name?: string;
-  created_at: string;
+  created_at?: string;
+  parent?: PostComment | number | null;
 }
 
 export interface Post {
