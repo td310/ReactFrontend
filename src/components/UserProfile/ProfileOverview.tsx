@@ -46,8 +46,14 @@ const ProfileOverview: React.FC = () => {
   const { data, isLoading, isError, refetch } = useGetProfileQuery();
   const profile = data?.data;
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [updateAvatar, { isLoading: avatarUpdating }] = useUpdateAvatarMutation();
-  const [updateBackground, { isLoading: backgroundUpdating }] = useUpdateBackgroundMutation();
+  const {
+    mutateAsync: updateAvatar,
+    isPending: avatarUpdating,
+  } = useUpdateAvatarMutation();
+  const {
+    mutateAsync: updateBackground,
+    isPending: backgroundUpdating,
+  } = useUpdateBackgroundMutation();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const bgInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -76,14 +82,14 @@ const ProfileOverview: React.FC = () => {
             name: file.name,
             data: base64Data,
           },
-        }).unwrap();
+        });
       } else {
         await updateBackground({
           background: {
             name: file.name,
             data: base64Data,
           },
-        }).unwrap();
+        });
       }
       setToast({ type: 'success', message: 'Cập nhật thành công! Đang làm mới dữ liệu...' });
       await refetch();
