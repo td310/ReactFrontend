@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '@/store/store';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { store } from '@/store/store';
 import type {
   ProfileResponse,
   UpdateAvatarRequest,
@@ -8,47 +8,87 @@ import type {
 } from '@/types/User';
 import { API_URL } from '@/utils/constants';
 
-export const userApi = createApi({
-  reducerPath: 'userApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      headers.set('Accept', 'application/json');
-      headers.set('Content-Type', 'application/json');
-      return headers;
+const getAuthHeaders = () => {
+  const token = store.getState().auth.token;
+  const headers: HeadersInit = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
+const fetchProfile = async (): Promise<ProfileResponse> => {
+  const response = await fetch(`${API_URL}/profile`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch profile');
+  }
+
+  return (await response.json()) as ProfileResponse;
+};
+
+const updateAvatarRequest = async (payload: UpdateAvatarRequest): Promise<UpdateMediaResponse> => {
+  const response = await fetch(`${API_URL}/user/update-avatar`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update avatar');
+  }
+
+  return (await response.json()) as UpdateMediaResponse;
+};
+
+const updateBackgroundRequest = async (
+  payload: UpdateBackgroundRequest,
+): Promise<UpdateMediaResponse> => {
+  const response = await fetch(`${API_URL}/user/update-background`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update background');
+  }
+
+  return (await response.json()) as UpdateMediaResponse;
+};
+
+export const useGetProfileQuery = () =>
+  useQuery({
+    queryKey: ['profile'],
+    queryFn: fetchProfile,
+  });
+
+export const useUpdateAvatarMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateAvatarRequest,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
-  }),
-  endpoints: (builder) => ({
-    getProfile: builder.query<ProfileResponse, void>({
-      query: () => ({
-        url: '/profile',
-        method: 'GET',
-      }),
-    }),
-    updateAvatar: builder.mutation<UpdateMediaResponse, UpdateAvatarRequest>({
-      query: (payload) => ({
-        url: '/user/update-avatar',
-        method: 'POST',
-        body: payload,
-      }),
-    }),
-    updateBackground: builder.mutation<UpdateMediaResponse, UpdateBackgroundRequest>({
-      query: (payload) => ({
-        url: '/user/update-background',
-        method: 'POST',
-        body: payload,
-      }),
-    }),
-  }),
-});
+  });
+};
 
-export const {
-  useGetProfileQuery,
-  useUpdateAvatarMutation,
-  useUpdateBackgroundMutation,
-} = userApi;
+export const useUpdateBackgroundMutation = () => {
+  const queryClient = useQueryClient();
 
+  return useMutation({
+    mutationFn: updateBackgroundRequest,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+  });
+};

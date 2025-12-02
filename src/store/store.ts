@@ -12,7 +12,7 @@ import {
 } from 'redux-persist';
 import authReducer from './AuthStore/authSlice';
 import { authApi } from '@/api/Auth/authApi';
-import { userApi } from '@/api/User/userApi';
+
 import { postsApi } from '@/api/Post/postsApi';
 import { commentsApi } from '@/api/Comment/commentsApi';
 
@@ -49,7 +49,6 @@ export const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
     [authApi.reducerPath]: authApi.reducer,
-    [userApi.reducerPath]: userApi.reducer,
     [postsApi.reducerPath]: postsApi.reducer,
     [commentsApi.reducerPath]: commentsApi.reducer,
   },
@@ -58,7 +57,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(authApi.middleware, userApi.middleware, postsApi.middleware, commentsApi.middleware),
+    }).concat(authApi.middleware, postsApi.middleware, commentsApi.middleware),
 });
 
 export const persistor = persistStore(store);
