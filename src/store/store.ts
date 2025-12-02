@@ -13,9 +13,6 @@ import {
 import authReducer from './AuthStore/authSlice';
 import { authApi } from '@/api/Auth/authApi';
 
-import { postsApi } from '@/api/Post/postsApi';
-import { commentsApi } from '@/api/Comment/commentsApi';
-
 const createSessionStorageAdapter = (): Storage => {
   if (typeof window === 'undefined' || !window.sessionStorage) {
     return {
@@ -49,15 +46,13 @@ export const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
     [authApi.reducerPath]: authApi.reducer,
-    [postsApi.reducerPath]: postsApi.reducer,
-    [commentsApi.reducerPath]: commentsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(authApi.middleware, postsApi.middleware, commentsApi.middleware),
+    }).concat(authApi.middleware),
 });
 
 export const persistor = persistStore(store);

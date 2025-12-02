@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/services/AuthService/authService';
 import { usePostsList } from '@/services/PostService/postService';
@@ -87,15 +87,64 @@ const PostCard = ({ post }: { post: Post }) => {
   );
 };
 
+const getVisiblePages = (current: number, total: number, maxButtons = 5) => {
+  const pages: number[] = [];
+  if (total <= 0) return pages;
+
+  const half = Math.floor(maxButtons / 2);
+  let start = Math.max(1, current - half);
+  let end = Math.min(total, current + half);
+
+  if (end - start < maxButtons - 1) {
+    if (start === 1) {
+      end = Math.min(total, start + maxButtons - 1);
+    } else if (end === total) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page);
+  }
+
+  return pages;
+};
+
 const HomeOverview: React.FC = () => {
   const { handleLogout } = useAuth();
   const user = useSelector((state: RootState) => state.auth.user);
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD';
-  const { posts, isLoading, isError, refetch } = usePostsList();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  const { posts, meta, isLoading, isError, refetch } = usePostsList({
+    limit,
+    page,
+  });
+
+  const currentPage = meta?.current_page ?? page;
+  const totalPages = Math.max(meta?.last_page ?? 1, 1);
+  const totalItems = meta?.total ?? posts.length;
+  const visibleRangeStart = posts.length ? limit * (currentPage - 1) + 1 : 0;
+  const visibleRangeEnd = posts.length ? Math.min(limit * currentPage, totalItems) : 0;
+
+  const visiblePages = useMemo(
+    () => getVisiblePages(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
+
+  const handlePageChange = (nextPage: number) => {
+    if (Number.isNaN(nextPage)) return;
+    setPage(Math.max(1, Math.min(nextPage, totalPages)));
+  };
+
+  const handlePrevPage = () => {
+    handlePageChange(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    handlePageChange(currentPage + 1);
+  };
 
   return (
     <>
@@ -155,6 +204,9 @@ const HomeOverview: React.FC = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-gray-500 uppercase tracking-wide">Danh sách bài viết</p>
+              <p className="text-sm text-gray-400">
+                Trang {currentPage} / {totalPages} • Tổng {totalItems} bài viết
+              </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -208,11 +260,53 @@ const HomeOverview: React.FC = () => {
           )}
 
           {!isLoading && !isError && posts.length > 0 && (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex flex-col gap-3 items-center pt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-white bg-blue-500 font-semibold disabled:bg-blue-300 disabled:cursor-not-allowed hover:bg-blue-600 transition"
+                    >
+                      Trang trước
+                    </button>
+                    {visiblePages.map((pageNumber) => (
+                      <button
+                        key={`page-${pageNumber}`}
+                        type="button"
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-4 py-2 rounded-xl border font-semibold transition ${
+                          pageNumber === currentPage
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'border-gray-200 text-gray-500 hover:bg-blue-50 hover:text-blue-700 bg-blue-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-white bg-blue-500 font-semibold disabled:bg-blue-300 disabled:cursor-not-allowed hover:bg-blue-600 transition"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Hiển thị {visibleRangeStart} - {visibleRangeEnd} trong tổng số {totalItems} bài viết
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </section>
       </main>
