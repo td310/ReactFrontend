@@ -3,8 +3,9 @@ import {
   useCreatePostMutation as useCreatePostMutationRQ,
   usePostDetailQuery,
   usePostsListQuery,
+  useUpdatePostStatusMutation,
 } from '@/api/Post/postApi';
-import type { CreatePostRequest, PostListParams } from '@/types';
+import type { CreatePostRequest, Post, PostListParams } from '@/types';
 
 export const usePostsList = (params?: PostListParams) => {
   const queryArgs = useMemo(
@@ -58,5 +59,37 @@ export const usePostDetail = (postId?: string | number) => {
     isError,
     error,
     refetch,
+  };
+};
+
+export const usePostInteraction = () => {
+  const { mutateAsync: updatePostStatus, isPending } = useUpdatePostStatusMutation();
+
+  const togglePin = async (post: Post) => {
+    const isCurrentlyPinned = Number(post.is_pinned) === 2;
+    const type = isCurrentlyPinned ? 0 : 1;
+
+    await updatePostStatus({
+      postId: post.id,
+      type,
+      content: post.content,
+    });
+  };
+
+  const toggleEmote = async (post: Post) => {
+    const isCurrentlyEmoted = Boolean(post.is_emoted);
+    const type = isCurrentlyEmoted ? 3 : 2;
+
+    await updatePostStatus({
+      postId: post.id,
+      type,
+      content: post.content,
+    });
+  };
+
+  return {
+    togglePin,
+    toggleEmote,
+    isUpdating: isPending,
   };
 };

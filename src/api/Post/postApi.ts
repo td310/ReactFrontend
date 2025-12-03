@@ -100,6 +100,43 @@ const createPostRequest = async ({ content, fileUpload }: CreatePostRequest): Pr
   return (await response.json()) as CreatePostResponse;
 };
 
+type PostActionType = 0 | 1 | 2 | 3;
+
+interface UpdatePostStatusPayload {
+  postId: string | number;
+  type: PostActionType;
+  content?: string;
+}
+
+const updatePostStatusRequest = async ({
+  postId,
+  type,
+  content,
+}: UpdatePostStatusPayload): Promise<CreatePostResponse> => {
+  const url = new URL(`${API_URL}/posts/${postId}`);
+  url.searchParams.set('type', String(type));
+
+  const body: Record<string, unknown> = {};
+
+  if (typeof content === 'string' && content.trim()) {
+    body.content = content.trim();
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'PUT',
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const message = errorBody?.message || 'Không thể cập nhật trạng thái bài viết.';
+    throw new Error(message);
+  }
+
+  return (await response.json()) as CreatePostResponse;
+};
+
 export const usePostsListQuery = (params?: PostListParams) =>
   useQuery<PostListResponse, Error>({
     queryKey: ['posts', params],
@@ -120,6 +157,18 @@ export const useCreatePostMutation = () => {
     mutationFn: createPostRequest,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+};
+
+export const useUpdatePostStatusMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<CreatePostResponse, Error, UpdatePostStatusPayload>({
+    mutationFn: updatePostStatusRequest,
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['posts'] });
+      void queryClient.invalidateQueries({ queryKey: ['posts', 'detail', variables.postId] });
     },
   });
 };
