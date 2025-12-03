@@ -1,11 +1,28 @@
-import { useGetPostsQuery, useCreatePostMutation, useGetPostQuery } from '@/api/Post/postsApi';
-import type { CreatePostRequest } from '@/types';
+import { useMemo } from 'react';
+import {
+  useCreatePostMutation as useCreatePostMutationRQ,
+  usePostDetailQuery,
+  usePostsListQuery,
+} from '@/api/Post/postApi';
+import type { CreatePostRequest, PostListParams } from '@/types';
 
-export const usePostsList = () => {
-  const { data, isLoading, isError, error, refetch, isFetching } = useGetPostsQuery();
+export const usePostsList = (params?: PostListParams) => {
+  const queryArgs = useMemo(
+    () => ({
+      limit: params?.limit ?? 10,
+      page: params?.page ?? 1,
+      search: params?.search?.trim() || undefined,
+      user_id: params?.user_id,
+    }),
+    [params?.limit, params?.page, params?.search, params?.user_id],
+  );
+
+  const { data, isLoading, isError, error, refetch, isFetching } = usePostsListQuery(queryArgs);
 
   return {
     posts: data?.data ?? [],
+    meta: data?.meta,
+    links: data?.links,
     isLoading: isLoading || isFetching,
     isError,
     error,
@@ -14,18 +31,11 @@ export const usePostsList = () => {
 };
 
 export const usePostActions = () => {
-  const [createPostMutation, { isLoading }] = useCreatePostMutation();
+  const { mutateAsync: createPostMutation, isPending } = useCreatePostMutationRQ();
 
   const createPost = async ({ content, fileUpload }: CreatePostRequest) => {
-    const formData = new FormData();
-    formData.append('content', content);
-
-    (fileUpload ?? []).forEach((file) => {
-      formData.append('fileUpload[]', file);
-    });
-
     try {
-      return await createPostMutation(formData).unwrap();
+      return await createPostMutation({ content, fileUpload });
     } catch (error: any) {
       const errorMessage = error?.data?.message || error?.message || 'Không thể tạo bài viết.';
       throw new Error(errorMessage);
@@ -34,16 +44,13 @@ export const usePostActions = () => {
 
   return {
     createPost,
-    isCreating: isLoading,
+    isCreating: isPending,
   };
 };
 
 export const usePostDetail = (postId?: string | number) => {
   const postKey = postId !== undefined && postId !== null ? postId.toString() : '';
-  const skip = !postKey;
-  const { data, isLoading, isFetching, isError, error, refetch } = useGetPostQuery(postKey, {
-    skip,
-  });
+  const { data, isLoading, isFetching, isError, error, refetch } = usePostDetailQuery(postKey);
 
   return {
     post: data,

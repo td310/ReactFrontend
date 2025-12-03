@@ -31,9 +31,32 @@ export interface Post {
   comments: PostComment[];
 }
 
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface PaginationLinks {
+  first: string | null;
+  last: string | null;
+  prev: string | null;
+  next: string | null;
+}
+
 export interface PostListResponse {
   message: string;
   data: Post[];
+  meta: PaginationMeta;
+  links: PaginationLinks;
+}
+
+export interface PostListParams {
+  limit?: number;
+  page?: number;
+  search?: string;
+  user_id?: number;
 }
 
 export interface CreatePostRequest {
