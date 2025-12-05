@@ -1,15 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPostSchema, type CreatePostFormValues } from '@/validation/posts/createPost.schema';
 import { usePostActions } from '@/services/PostService/postService';
+import { toast } from 'react-toastify';
 
 const CreatePostForm: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { createPost, isCreating } = usePostActions();
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const {
     register,
@@ -33,11 +33,10 @@ const CreatePostForm: React.FC = () => {
     const selectedFiles = Array.from(files);
     const nextUploads = [...uploads, ...selectedFiles];
     setValue('fileUpload', nextUploads, { shouldValidate: true, shouldDirty: true });
-    setToast({ type: 'success', message: `Đã thêm ${selectedFiles.length} tệp đính kèm.` });
+    toast.success(`Đã thêm ${selectedFiles.length} tệp đính kèm.`);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    setTimeout(() => setToast(null), 2500);
   };
 
   const removeFile = (index: number) => {
@@ -46,22 +45,16 @@ const CreatePostForm: React.FC = () => {
   };
 
   const onSubmit = async (values: CreatePostFormValues) => {
-    setToast(null);
     try {
       await createPost({
         content: values.content.trim(),
         fileUpload: values.fileUpload && values.fileUpload.length > 0 ? values.fileUpload : [],
       });
-      setToast({ type: 'success', message: 'Tạo bài viết thành công! Đang chuyển hướng...' });
+      toast.success('Tạo bài viết mới thành công');
       reset();
-      setTimeout(() => {
-        navigate('/home');
-      }, 1200);
+      navigate('/home');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Tạo bài viết thất bại. Vui lòng thử lại.';
-      setToast({ type: 'error', message });
-    } finally {
-      setTimeout(() => setToast(null), 3000);
+      toast.error('Tạo bài viết thất bại');
     }
   };
 
@@ -81,18 +74,6 @@ const CreatePostForm: React.FC = () => {
           </Link>
         </div>
       </header>
-
-      {toast && (
-        <div
-          className={`mx-6 lg:mx-auto mt-4 max-w-5xl w-full rounded-2xl border px-4 py-3 text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : 'bg-rose-50 border-rose-200 text-rose-700'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}

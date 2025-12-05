@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/services/AuthService/authService';
-import { usePostsList } from '@/services/PostService/postService';
+import { usePostsList, usePostInteraction } from '@/services/PostService/postService';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store/store';
 import type { Post } from '@/types';
@@ -27,6 +27,8 @@ const PostCard = ({ post }: { post: Post }) => {
     ...(Array.isArray(post.file_uploads) ? post.file_uploads : []),
   ].filter((item): item is string => Boolean(item));
   const thumbnail = resolveMediaUrl(attachments[0]);
+  const { togglePin, toggleEmote, isUpdating } = usePostInteraction();
+  const isPinned = Number(post.is_pinned) === 2;
 
   return (
     <Link to={`/posts/${post.id}`} className="block">
@@ -59,27 +61,77 @@ const PostCard = ({ post }: { post: Post }) => {
               </span>
             )}
           </div>
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500 font-medium">
-            <span className="flex items-center gap-1 uppercase tracking-wide">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v7a2 2 0 01-2 2h-2m-4 0H7a2 2 0 01-2-2V8m12 0V6a2 2 0 00-2-2h-2m4 4H7m4-4H7a2 2 0 00-2 2v2" />
-              </svg>
-              {post.comments_count ?? 0} bình luận
-            </span>
-            <span className="flex items-center gap-1 uppercase tracking-wide">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 9l-2-2-2 2m0 6l2 2 2-2m2-4h4m-4 4h4m-4-8h4M4 9h4m-4 4h4m-4 4h4" />
-              </svg>
-              {post.emotes_count ?? 0} cảm xúc
-            </span>
-            {post.is_pinned ? (
-              <span className="flex items-center gap-1 text-amber-600 uppercase tracking-wide">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.062 3.261a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.062 3.262c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.062-3.262a1 1 0 00-.364-1.118L2.99 8.688c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.059-3.261z" />
+          <div className="mt-4 flex items-center justify-between gap-4 text-xs text-gray-500 font-medium">
+            <div className="flex flex-wrap gap-4">
+              <span className="flex items-center gap-1 uppercase tracking-wide">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v7a2 2 0 01-2 2h-2m-4 0H7a2 2 0 01-2-2V8m12 0V6a2 2 0 00-2-2h-2m4 4H7m4-4H7a2 2 0 00-2 2v2" />
                 </svg>
-                Đã ghim
+                {post.comments_count ?? 0} bình luận
               </span>
-            ) : null}
+              <span className="flex items-center gap-1 uppercase tracking-wide">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 9l-2-2-2 2m0 6l2 2 2-2m2-4h4m-4 4h4m-4-8h4M4 9h4m-4 4h4m-4 4h4" />
+                </svg>
+                {post.emotes_count ?? 0} cảm xúc
+              </span>
+              {isPinned ? (
+                <span className="flex items-center gap-1 text-amber-600 uppercase tracking-wide">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.062 3.261a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.062 3.262c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.062-3.262a1 1 0 00-.364-1.118L2.99 8.688c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.059-3.261z" />
+                  </svg>
+                  Đã ghim
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isUpdating}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void toggleEmote(post);
+                }}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  post.is_emoted
+                    ? 'bg-rose-50 border-rose-200 text-rose-600'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600'
+                } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                <svg
+                  className={`w-4 h-4 ${post.is_emoted ? 'fill-rose-500' : 'fill-none stroke-current'}`}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12.1 4.64l-.1.1-.11-.11C9.24 1.89 4.91 3.11 3.6 6.28c-.74 1.82-.34 3.97 1.02 5.54 1.3 1.5 5.45 5.18 6.88 6.42.28.24.42.36.6.41.15.04.31.04.46 0 .18-.05.32-.17.6-.41 1.43-1.24 5.58-4.92 6.88-6.42 1.36-1.57 1.76-3.72 1.02-5.54C19.09 3.11 14.76 1.89 12.1 4.64z"
+                  />
+                </svg>
+                <span>{post.is_emoted ? 'Bỏ thích' : 'Thích'}</span>
+              </button>
+              <button
+                type="button"
+                disabled={isUpdating}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void togglePin(post);
+                }}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  isPinned
+                    ? 'bg-amber-50 border-amber-300 text-amber-700'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                <svg
+                  className={`w-4 h-4 ${isPinned ? 'fill-amber-500' : 'fill-none stroke-current'}`}
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M16 3l-1 4 3 3-3 3 1 8-4-5-4 5 1-8-3-3 3-3-1-4h8z" />
+                </svg>
+                <span>{isPinned ? 'Bỏ ghim' : 'Ghim'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </article>

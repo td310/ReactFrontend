@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import HomeLayout from '@/components/Home/HomeLayout';
-import { usePostDetail } from '@/services/PostService/postService';
+import { usePostDetail, usePostInteraction } from '@/services/PostService/postService';
 import { useCommentActions } from '@/services/CommentService/commentService';
 import { resolveMediaUrl } from '@/utils/media';
 import CommentList from '@/components/Comments/CommentList';
@@ -22,6 +22,7 @@ const PostDetailPage: React.FC = () => {
   const { post, isLoading, isError, refetch } = usePostDetail(postId);
   const [showCommentBox, setShowCommentBox] = useState(false);
   const { createComment, isCreating } = useCommentActions(postId);
+  const { togglePin, toggleEmote, isUpdating } = usePostInteraction();
 
   const {
     register,
@@ -45,6 +46,7 @@ const PostDetailPage: React.FC = () => {
   }, [post]);
 
   const comments = post?.comments ?? [];
+  const isPinned = Number(post?.is_pinned) === 2;
   const showMissingState = !isLoading && !isError && !post;
 
   const onSubmitComment = async (values: CreateCommentFormValues) => {
@@ -139,17 +141,57 @@ const PostDetailPage: React.FC = () => {
                     <p className="text-sm text-gray-500">{formatDateTime(post.created_at)}</p>
                     <h1 className="text-3xl font-bold text-gray-900 leading-snug">{post.content}</h1>
                   </div>
-                  <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4 justify-between">
                     <div className="text-sm text-gray-500">
                       {post.emotes_count ?? 0} cảm xúc • {post.comments_count ?? 0} bình luận
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowCommentBox(!showCommentBox)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-200 text-blue-700 font-semibold transition bg-blue-500 text-white"
-                    >
-                     {showCommentBox ? 'Ẩn bình luận' : 'Bình luận'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => void toggleEmote(post)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition ${
+                          post.is_emoted
+                            ? 'bg-rose-50 border-rose-200 text-rose-600'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600'
+                        } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <svg
+                          className={`w-5 h-5 ${post.is_emoted ? 'fill-rose-500' : 'fill-none stroke-current'}`}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12.1 4.64l-.1.1-.11-.11C9.24 1.89 4.91 3.11 3.6 6.28c-.74 1.82-.34 3.97 1.02 5.54 1.3 1.5 5.45 5.18 6.88 6.42.28.24.42.36.6.41.15.04.31.04.46 0 .18-.05.32-.17.6-.41 1.43-1.24 5.58-4.92 6.88-6.42 1.36-1.57 1.76-3.72 1.02-5.54C19.09 3.11 14.76 1.89 12.1 4.64z"
+                          />
+                        </svg>
+                        <span>{post.is_emoted ? 'Bỏ thích' : 'Thích'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => void togglePin(post)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition ${
+                          isPinned
+                            ? 'bg-amber-50 border-amber-300 text-amber-700'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                        } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <svg
+                          className={`w-5 h-5 ${isPinned ? 'fill-amber-500' : 'fill-none stroke-current'}`}
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M16 3l-1 4 3 3-3 3 1 8-4-5-4 5 1-8-3-3 3-3-1-4h8z" />
+                        </svg>
+                        <span>{isPinned ? 'Bỏ ghim' : 'Ghim'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCommentBox(!showCommentBox)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-200 text-blue-700 font-semibold transition bg-blue-500 text-white"
+                      >
+                        {showCommentBox ? 'Ẩn bình luận' : 'Bình luận'}
+                      </button>
+                    </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">{post.content}</p>
                 </div>
